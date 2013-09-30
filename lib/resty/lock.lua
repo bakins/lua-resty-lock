@@ -114,6 +114,26 @@ function _M.new(_, dict_name, opts)
     return setmetatable(self, mt)
 end
 
+function _M.trylock(self, key)
+    local dict = self.dict
+    local cdata = self.cdata
+    if cdata.key_id > 0 then
+        return nil, "locked"
+    end
+    local exptime = self.exptime
+    local ok, err = dict:add(key, true, exptime)
+    if ok then
+        cdata.key_id = ref_obj(key)
+        if not shdict_mt then
+            shdict_mt = getmetatable(dict)
+        end
+        return 0, nil
+    end
+    if err ~= "exists" then
+        return nil, err
+    end
+    return nil, "acquire"
+end
 
 function _M.lock(self, key)
     local dict = self.dict
